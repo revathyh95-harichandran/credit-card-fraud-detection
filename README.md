@@ -7,10 +7,18 @@ transactions, in which fraud is extremely rare.
 
 ## Project status
 
-**Phase 0 (setup) is complete.** The project structure, version control and
-license are in place, and the dataset has been checked and unzipped locally.
-No analysis or modelling has been done yet. This README is updated at the
-end of every phase with what that phase actually produced.
+**Phase 0 (setup) and Phase 1 (cleaning) are complete.** No modelling has
+been done yet. This README is updated at the end of every phase with what
+that phase actually produced.
+
+Phase 1 produced:
+- `notebooks/01_data_cleaning.ipynb`: every cleaning check, run on the real
+  data, with its real output.
+- `docs/data_dictionary.md`: every column explained, with checked facts.
+- A cleaned dataset (kept locally, not in this repository): 283,726
+  transactions after removing 1,081 exact duplicate copies. 473 are fraud,
+  **0.1667%**, about 1 in every 599. No missing values and no contradictory
+  labels were found.
 
 ## Planned approach
 
@@ -24,6 +32,27 @@ These are the plans, not results yet:
 - **An honest comparison of four ways to handle the class imbalance:**
   SMOTE, Borderline-SMOTE, ADASYN, and class weighting.
 - **XGBoost** as the main model, compared against simpler baselines.
+
+## Fairness: what this project cannot check
+
+A fair fraud model should not flag some groups of people (for example by
+age, gender, ethnicity, or where they live) far more often than others for
+the same behaviour. **This project cannot check for that.**
+
+The dataset contains no usable personal or demographic information. The
+only readable columns are `Time`, `Amount`, and `Class`; everything else
+(`V1` to `V28`) was anonymized by the dataset's creators using PCA, which
+blends the original details together so they can't be recovered. Whatever
+personal details went into those columns, we can't see them, so we can't
+measure whether the model treats any group differently.
+
+That does not mean the model is fair, only that its fairness is unknown.
+Anonymized features can still carry patterns linked to who someone is,
+and even `Amount` or the timing of purchases can differ between groups.
+A real deployment of a model like this would need a proper fairness audit,
+using data that includes the relevant characteristics, handled under
+appropriate privacy safeguards. That audit is outside what this dataset
+makes possible.
 
 ## Project structure
 
