@@ -1,0 +1,34 @@
+# Data: the dataset is ~150 MB and belongs to its authors; anyone can download it from Kaggle.
+# The "*" ignores everything inside each folder, and the "!" line makes an exception
+# for one tiny placeholder file so the empty folder structure still shows on GitHub
+# (git cannot track an empty folder on its own).
+data/raw/*
+!data/raw/.gitkeep
+data/staging/*
+!data/staging/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Python virtual environments and secrets
+.venv/
+venv/
+env/
+.env
+
+# Files Python and Jupyter create automatically
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Claude Code's settings for this computer only (personal, not part of the project)
+.claude/settings.local.json
+
+# Personal planning and learning notes (never published)
+CLAUDE.md
+PROJECT_LITERATURE_REVIEW.md
+PROJECT_BLUEPRINT.md
+Fraud_Detection_Claude_Code_Rules_Book.md
+Fraud_Detection_Claude_Code_Execution_Guide.md
+DECISIONS.md
+DEBUG_LOG.md
+CONCEPTS.md
