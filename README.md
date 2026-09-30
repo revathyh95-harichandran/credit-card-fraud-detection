@@ -7,8 +7,8 @@ transactions, in which fraud is extremely rare.
 
 ## Project status
 
-**Phases 0 (setup), 1 (cleaning) and 2 (exploration) are complete.** No
-modelling has been done yet. This README is updated at the end of every
+**Phases 0 (setup), 1 (cleaning), 2 (exploration) and 3 (time-based
+split) are complete.** No modelling has been done yet. This README is updated at the end of every
 phase with what that phase actually produced.
 
 Phase 1 produced:
@@ -46,12 +46,40 @@ All from `notebooks/02_exploration.ipynb`, on the cleaned data.
   (largest correlation 0.019 across all 378 pairs), as PCA output should be.
   [Heatmap](outputs/figures/06_v_correlation_heatmap.png)
 
+## How the data is split (Phase 3)
+
+From `notebooks/03_time_split.ipynb`. The data is split **by time, never
+randomly**, because fraud patterns change over time and a random split
+would let a model learn from the future.
+
+| Part | Rows | Fraud | Used for |
+|---|---|---|---|
+| Development data (earliest 80%) | 226,980 | 399 | every choice, via walk-forward validation |
+| Test group (latest 20%) | 56,746 | 74 | the final result, looked at once, at the end |
+
+- **Walk-forward validation:** the development data is cut into 5
+  time-ordered blocks. In each of 4 rounds a model learns from all earlier
+  blocks and is checked on the next, so choices are judged on 250 fraud
+  cases while never peeking at the future. A first single 60/20/20 split
+  was replaced because its validation group held only 57 fraud cases.
+- **Clean boundaries:** transactions from the same second always stay
+  together, and the first 10 minutes after each boundary are not scored,
+  so a burst of fraud can't be learned on one side and scored on the
+  other.
+- **The fraud rate changes over time:** from 0.10% to 0.31% across blocks,
+  highest in the two blocks containing night-time stretches. The first
+  block's rate (0.31%) is higher than every other part's, and the second
+  night block's (0.20%) higher than its two daytime neighbours', with
+  non-overlapping 95% bootstrap confidence intervals; the other
+  differences may be noise.
+  [Chart](outputs/figures/07_fraud_rate_over_time.png)
+
 ## Planned approach
 
 These are the plans, not results yet:
 
-- **Time-ordered data splits** (train, validation, test by transaction time)
-  instead of a random split, because fraud patterns change over time.
+- **Walk-forward validation on the development data** for every choice,
+  with the test group used once at the end (set up in Phase 3, above).
 - **AUCPR over a realistic low-recall range** as the main metric, since a
   fraud team can only review a limited number of alerts. Plain accuracy is
   not used.
