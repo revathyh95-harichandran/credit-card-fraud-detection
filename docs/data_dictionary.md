@@ -29,9 +29,9 @@ numbers, `float64` means decimal numbers. No column has any missing values.
 | Column | Source | Type | Description |
 |---|---|---|---|
 | `row_id` | Added by us (cleaning step 2) | int64 | The row's position in the original raw file, starting at 0. This is our own label, not an ID from the bank. It never changes, so any transaction can always be traced back to the raw file, even after rows are removed. |
-| `Time` | Original | float64 | Seconds between this transaction and the **first transaction in the file**. It is **not** the time of day, and the clock time of the first transaction is not given. Stored as a decimal, but every value is a whole number of seconds. Checked in cleaning step 5: runs from 0 to 172,792 (about 48 hours), the file is already in time order, and many transactions share the same second. |
+| `Time` | Original | float64 | Seconds between this transaction and the **first transaction in the file**. It is **not** the time of day, and the clock time of the first transaction is not given. Stored as a decimal, but every value is a whole number of seconds. Checked in cleaning step 5: runs from 0 to 172,792 (about 48 hours), the file is already in time order, and many transactions share the same second. Exploration notebook 02: transactions follow a clear daily cycle, with the quietest hours exactly 24 hours apart (hours 4 and 28 after the first transaction, about 1,100 transactions each, against up to 9,875 in the busiest hour). The quiet stretches are consistent with night-time, but the clock time is not known. |
 | `V1` to `V28` | Original | float64 | Anonymized features created with PCA from confidential transaction details. We genuinely can't say what each one individually represents. See the section below. |
-| `Amount` | Original | float64 | The transaction amount. The currency is not stated in the published description, so none is assumed here. |
+| `Amount` | Original | float64 | The transaction amount. The currency is not stated in the published description, so none is assumed here. In the cleaned file (exploration notebook 02): ranges from 0 to 25,691.16, median 22.00, mean 88.47, 99% of transactions at or below 1,018.97. Heavily right-skewed (skewness 16.98). By the IQR rule (Q1 5.60, Q3 77.51), 31,685 transactions (11.17%) are above the upper fence of 185.38 and none below the lower fence; these are real, larger purchases, kept in the data. The fraud rate among them is 0.275%, against 0.153% for all other transactions. Fraud versus genuine (full table in `outputs/tables/amount_by_class.csv`): fraud has a lower median (9.82 vs 22.00) but a higher mean (123.87 vs 88.41), with non-overlapping 95% bootstrap confidence intervals for both; fraud has more exactly-zero amounts (5.29% vs 0.63%) and more above 185.38 (18.39% vs 11.16%), and its largest amount is 2,125.87. |
 | `Class` | Original | int64 | The label the model tries to predict: `1` = confirmed fraud, `0` = genuine transaction. These are the only two values that appear. In the cleaned file: 283,253 genuine and 473 fraud (0.1667% fraud, about 1 in 599), counted in cleaning step 9. |
 
 ## Why the V columns are anonymized
@@ -55,6 +55,11 @@ What this means in practice:
 - Every V column's mean is essentially exactly zero (all within about
   0.000000000000005 of it), as PCA output should be. Checked in cleaning
   step 6.
+- The V columns are essentially uncorrelated with each other, as PCA
+  output should be: across all 378 pairs, the largest correlation is 0.019
+  (V8 with V21). Time and Amount, which were not part of PCA, do correlate
+  with some V columns (Time with V3 at −0.42, Amount with V2 at −0.53).
+  Checked in exploration notebook 02.
 - The V columns are **not** all on the same scale as each other (see the
   standard deviations above), even though they are all centred on zero.
 - The V columns can still help a model tell fraud from genuine, but if a

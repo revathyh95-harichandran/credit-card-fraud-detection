@@ -7,9 +7,9 @@ transactions, in which fraud is extremely rare.
 
 ## Project status
 
-**Phase 0 (setup) and Phase 1 (cleaning) are complete.** No modelling has
-been done yet. This README is updated at the end of every phase with what
-that phase actually produced.
+**Phases 0 (setup), 1 (cleaning) and 2 (exploration) are complete.** No
+modelling has been done yet. This README is updated at the end of every
+phase with what that phase actually produced.
 
 Phase 1 produced:
 - `notebooks/01_data_cleaning.ipynb`: every cleaning check, run on the real
@@ -19,6 +19,32 @@ Phase 1 produced:
   transactions after removing 1,081 exact duplicate copies. 473 are fraud,
   **0.1667%**, about 1 in every 599. No missing values and no contradictory
   labels were found.
+
+## What the data looks like (Phase 2)
+
+All from `notebooks/02_exploration.ipynb`, on the cleaned data.
+
+- **Fraud is rare:** 473 of 283,726 transactions (0.17%), about 1 in 599.
+  [Chart](outputs/figures/01_class_balance.png)
+- **Amount is heavily right-skewed** (skewness 16.98): median 22.00, mean
+  88.47, largest 25,691.16. By the IQR rule, 11.17% of transactions are
+  unusually large (above 185.38); they are real purchases and are kept.
+  [Distribution](outputs/figures/02_amount_distribution.png),
+  [boxplot](outputs/figures/03_amount_boxplot.png)
+- **Transactions follow a daily cycle,** with the quietest hours exactly 24
+  hours apart. **Fraud does not:** its share rises to about 1.3% to 1.6% of
+  transactions in the quiet hours, against 0.17% overall. (The data's clock
+  time is unknown, so these can't be named as night-time for certain.)
+  [Chart](outputs/figures/04_time_distribution.png)
+- **Fraud looks different in Amount, but not simply "bigger":** a lower
+  median than genuine (9.82 vs 22.00) and a higher mean (123.87 vs 88.41),
+  with non-overlapping 95% bootstrap confidence intervals for both. Fraud
+  has more exactly-zero amounts and more large ones.
+  [Chart](outputs/figures/05_amount_by_class.png),
+  [table](outputs/tables/amount_by_class.csv)
+- **The anonymized V1 to V28 columns are uncorrelated with each other**
+  (largest correlation 0.019 across all 378 pairs), as PCA output should be.
+  [Heatmap](outputs/figures/06_v_correlation_heatmap.png)
 
 ## Planned approach
 
@@ -65,6 +91,7 @@ notebooks/      Jupyter notebooks for exploration and explanation
 src/            Python scripts for the repeatable steps
 outputs/
   figures/      every chart, saved as an image file
+  tables/       summary tables, saved as CSV files
   models/       the final trained model
 docs/           project documentation, such as the data dictionary
 ```
