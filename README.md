@@ -7,8 +7,9 @@ transactions, in which fraud is extremely rare.
 
 ## Project status
 
-**Phases 0 (setup), 1 (cleaning), 2 (exploration) and 3 (time-based
-split) are complete.** No modelling has been done yet. This README is updated at the end of every
+**Phases 0 (setup), 1 (cleaning), 2 (exploration), 3 (time-based split)
+and 4 (handling the class imbalance) are complete.** The final model has
+not been chosen or trained yet. This README is updated at the end of every
 phase with what that phase actually produced.
 
 Phase 1 produced:
@@ -74,18 +75,45 @@ would let a model learn from the future.
   differences may be noise.
   [Chart](outputs/figures/07_fraud_rate_over_time.png)
 
+## Handling the class imbalance (Phase 4)
+
+From `notebooks/04_imbalance.ipynb`, on the development data only. Four
+techniques were compared, each in all four walk-forward rounds with the
+same simple model (Logistic Regression), fitted on each round's learning
+blocks only and judged on the pooled check blocks (250 fraud cases).
+
+- **Metric:** AUCPR over recall 0 to 0.2 (how precise the model is among
+  its most confident flags, the part a fraud team with limited time
+  actually uses), with average precision over the whole curve as a
+  pre-declared tie-breaker.
+- **Comparison test:** 95% bootstrap confidence intervals of the paired
+  difference between two techniques scored on the same transactions.
+- **Result: no single clear winner.** ADASYN was clearly worse on the main
+  metric, Borderline-SMOTE clearly worse on average precision, and SMOTE
+  and class weighting were tied on both. No technique won every round.
+  Contrary to what the literature would suggest, neither Borderline-SMOTE
+  nor ADASYN beat plain SMOTE on this data.
+- **Carried forward: class weighting**, as a practical tie-break between
+  two equally good options: it creates no synthetic data and keeps
+  training fast.
+- **Data leakage shown on purpose:** fitting SMOTE before separating the
+  learning and check data inflated average precision by 0.018, a real
+  difference (95% interval +0.006 to +0.032) with no real improvement
+  behind it.
+
+Results: [by round](outputs/tables/imbalance_by_round.csv),
+[pooled](outputs/tables/imbalance_pooled.csv),
+[paired differences](outputs/tables/imbalance_paired_differences.csv).
+
 ## Planned approach
 
 These are the plans, not results yet:
 
-- **Walk-forward validation on the development data** for every choice,
-  with the test group used once at the end (set up in Phase 3, above).
-- **AUCPR over a realistic low-recall range** as the main metric, since a
-  fraud team can only review a limited number of alerts. Plain accuracy is
-  not used.
-- **An honest comparison of four ways to handle the class imbalance:**
-  SMOTE, Borderline-SMOTE, ADASYN, and class weighting.
-- **XGBoost** as the main model, compared against simpler baselines.
+- **XGBoost** as the main model, compared against simpler baselines, using
+  class weighting and the same walk-forward comparison.
+- **The final model** trained once on all the development data, then
+  scored once on the locked test group with AUCPR over the low-recall
+  range.
 
 ## Fairness: what this project cannot check
 
