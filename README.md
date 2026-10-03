@@ -7,9 +7,10 @@ transactions, in which fraud is extremely rare.
 
 ## Project status
 
-**Phases 0 (setup), 1 (cleaning), 2 (exploration), 3 (time-based split)
-and 4 (handling the class imbalance) are complete.** The final model has
-not been chosen or trained yet. This README is updated at the end of every
+**Phases 0 (setup), 1 (cleaning), 2 (exploration), 3 (time-based split),
+4 (handling the class imbalance) and 5 (comparing models) are complete.**
+The final model has been chosen (XGBoost) but not yet trained on all the
+development data or scored on the test group. This README is updated at the end of every
 phase with what that phase actually produced.
 
 Phase 1 produced:
@@ -105,15 +106,51 @@ Results: [by round](outputs/tables/imbalance_by_round.csv),
 [pooled](outputs/tables/imbalance_pooled.csv),
 [paired differences](outputs/tables/imbalance_paired_differences.csv).
 
+## Comparing models (Phase 5)
+
+From `notebooks/05_models.ipynb`, on the development data only, with
+class weighting and the same walk-forward rounds for every model. The
+shared steps live in `src/walk_forward.py`, so every model runs exactly
+the same code.
+
+- **Three models, standard settings:** Logistic Regression, Random Forest
+  and XGBoost, each with reasonable, explained default settings rather
+  than a search for the best ones. With only 250 fraud cases to judge on,
+  tuning would partly fit those particular cases. These results show
+  standard-setting performance, not each model's ceiling.
+
+| Model | AUCPR, recall 0 to 0.2 (95% CI) | Average precision (95% CI) |
+|---|---|---|
+| Logistic Regression | 0.997 (0.983 to 1.000) | 0.692 (0.631 to 0.749) |
+| Random Forest | 0.960 (0.896 to 0.998) | 0.758 (0.698 to 0.810) |
+| XGBoost | 0.969 (0.912 to 1.000) | 0.753 (0.694 to 0.804) |
+
+- **Result:** all three are tied on the main metric (no paired difference
+  proven). On average precision, XGBoost and Random Forest are genuinely
+  ahead of Logistic Regression overall, though not in every round: in one
+  later round Logistic Regression was genuinely better. XGBoost and
+  Random Forest could not be told apart.
+- **Chosen: XGBoost**, as a practical tie-break with Random Forest: its
+  scores are smooth (useful for choosing a decision threshold), it was best
+  or tied on the main metric in every round, and it is fast.
+- **Scaling Amount** didn't measurably change performance, but without it
+  Logistic Regression failed to finish learning in three of four rounds,
+  so it is kept.
+- **An hour-of-day feature** (fraud's share rises at night) was tested and
+  **left out**: it didn't measurably improve XGBoost.
+
+Results: [by round](outputs/tables/models_by_round.csv),
+[pooled](outputs/tables/models_pooled.csv),
+[paired differences](outputs/tables/models_paired_differences.csv),
+[hour-of-day test](outputs/tables/hour_of_day_paired_differences.csv).
+
 ## Planned approach
 
 These are the plans, not results yet:
 
-- **XGBoost** as the main model, compared against simpler baselines, using
-  class weighting and the same walk-forward comparison.
-- **The final model** trained once on all the development data, then
-  scored once on the locked test group with AUCPR over the low-recall
-  range.
+- **The final model** (XGBoost, class weighting, standard settings)
+  trained once on all the development data, then scored once on the
+  locked test group with AUCPR over the low-recall range.
 
 ## Fairness: what this project cannot check
 
@@ -144,7 +181,7 @@ data/
   staging/      in-between cleaning output (not in git)
   processed/    final cleaned data used for modelling (not in git)
 notebooks/      Jupyter notebooks for exploration and explanation
-src/            Python scripts for the repeatable steps
+src/            Python code for the repeatable steps (walk_forward.py)
 outputs/
   figures/      every chart, saved as an image file
   tables/       summary tables, saved as CSV files

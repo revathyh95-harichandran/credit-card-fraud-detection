@@ -4,3 +4,4 @@ jupyter==1.1.1
 matplotlib==3.11.2
 scikit-learn==1.9.1
 imbalanced-learn==0.14.2
+xgboost==3.4.1

@@ -1,0 +1,31 @@
+where,pair (A minus B),metric,ci_lower,ci_upper,verdict
+pooled,XGBoost minus Logistic Regression,low_recall,-0.08421225737224719,0.006449599478154732,not proven
+pooled,XGBoost minus Logistic Regression,average_precision,0.025411490180412555,0.09393675680407021,A genuinely better
+pooled,XGBoost minus Random Forest,low_recall,-0.04043308695811938,0.06920089951666684,not proven
+pooled,XGBoost minus Random Forest,average_precision,-0.02721405555379297,0.018868487416859245,not proven
+pooled,Random Forest minus Logistic Regression,low_recall,-0.09971506487952578,0.0019023662125320373,not proven
+pooled,Random Forest minus Logistic Regression,average_precision,0.0292672661748139,0.10063205791004858,A genuinely better
+round 1,XGBoost minus Logistic Regression,low_recall,0.0,0.37310321427018445,not proven
+round 1,XGBoost minus Logistic Regression,average_precision,0.09413188518417473,0.2915961334386471,A genuinely better
+round 1,XGBoost minus Random Forest,low_recall,-2.220446049250313e-16,2.220446049250313e-16,not proven
+round 1,XGBoost minus Random Forest,average_precision,-0.04196635347191765,0.000470616852520167,not proven
+round 1,Random Forest minus Logistic Regression,low_recall,0.0,0.37310321427018445,not proven
+round 1,Random Forest minus Logistic Regression,average_precision,0.11353824816596302,0.31440603045322973,A genuinely better
+round 2,XGBoost minus Logistic Regression,low_recall,-0.12827002932056106,0.20600448162948132,not proven
+round 2,XGBoost minus Logistic Regression,average_precision,0.02630361697717554,0.17114127733879347,A genuinely better
+round 2,XGBoost minus Random Forest,low_recall,-0.0965490308389636,0.167881913361765,not proven
+round 2,XGBoost minus Random Forest,average_precision,-0.029188971314506765,0.035742193337099215,not proven
+round 2,Random Forest minus Logistic Regression,low_recall,-0.16255515318015304,0.19197553294573652,not proven
+round 2,Random Forest minus Logistic Regression,average_precision,0.022659876540262747,0.1698001328299295,A genuinely better
+round 3,XGBoost minus Logistic Regression,low_recall,-0.004059727971614357,2.220446049250313e-16,not proven
+round 3,XGBoost minus Logistic Regression,average_precision,-0.11724936814912432,-0.009139580128697715,B genuinely better
+round 3,XGBoost minus Random Forest,low_recall,-2.220446049250313e-16,0.153733528503757,not proven
+round 3,XGBoost minus Random Forest,average_precision,-0.047395495554212526,0.04440986572400058,not proven
+round 3,Random Forest minus Logistic Regression,low_recall,-0.15373352850375713,0.0,not proven
+round 3,Random Forest minus Logistic Regression,average_precision,-0.12079170908322102,-0.0024343252093266656,B genuinely better
+round 4,XGBoost minus Logistic Regression,low_recall,-2.220446049250313e-16,2.220446049250313e-16,not proven
+round 4,XGBoost minus Logistic Regression,average_precision,-0.03771801044511052,0.029526926860224633,not proven
+round 4,XGBoost minus Random Forest,low_recall,-1.1102230246251565e-16,0.08551142655793814,not proven
+round 4,XGBoost minus Random Forest,average_precision,-0.005141564451075301,0.0856650265272294,not proven
+round 4,Random Forest minus Logistic Regression,low_recall,-0.08551142655793814,1.1102230246251565e-16,not proven
+round 4,Random Forest minus Logistic Regression,average_precision,-0.09179925322860143,0.009996603523753266,not proven
