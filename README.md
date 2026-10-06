@@ -7,11 +7,12 @@ transactions, in which fraud is extremely rare.
 
 ## Project status
 
-**Phases 0 to 6 are complete:** setup, cleaning, exploration, the
-time-based split, handling the class imbalance, comparing models, and the
-final model's one-time evaluation on the test group. The decision
-threshold (Phase 7) and the model explanation (Phase 8) are still to come. This README is updated at the end of every
-phase with what that phase actually produced.
+**Phases 0 to 7 are complete:** setup, cleaning, exploration, the
+time-based split, handling the class imbalance, comparing models, the
+final model's one-time evaluation on the test group, and choosing the
+decision thresholds. The model explanation (Phase 8) is still to come.
+This README is updated at the end of every phase with what that phase
+actually produced.
 
 Phase 1 produced:
 - `notebooks/01_data_cleaning.ipynb`: every cleaning check, run on the real
@@ -174,13 +175,58 @@ used for any decision. Nothing was changed after seeing the result.
   precision): the test scores are higher, but the confidence intervals
   overlap, so they are consistent rather than proven different.
 
+## From risk score to decision (Phase 7)
+
+From `notebooks/07_threshold.ipynb`. The model gives every transaction a
+risk score; a **cutoff** turns that into a yes/no decision (flag it for
+the fraud team, or let it through). Both cutoffs below were chosen on the
+walk-forward check blocks only, expressed as "flag the top X% most
+suspicious transactions", then applied **once** to the saved test scores.
+
+- **Main cutoff: flag the top 0.090%.** On the check blocks, alerts stay
+  93% to 96% real fraud until about 60% of the fraud is found, then
+  precision falls off a cliff between 70% and 80%. This line sits at the
+  end of that stable stretch, with a safety margin.
+  [Precision-recall curve](outputs/figures/09_precision_recall_curve_check_blocks.png),
+  [depth table](outputs/tables/check_blocks_alert_depth.csv)
+- **Cost-based cutoff: flag the top 0.196%.** Under stated business
+  assumptions (a missed fraud costs its Amount + 20, a false alarm 8, a
+  caught fraud 3 for review time), this is where total cost is lowest on
+  the check blocks. These costs are assumptions, not bank data.
+  [Cost curve](outputs/figures/10_cost_curve_check_blocks.png),
+  [table](outputs/tables/cost_based_cutoff_check_blocks.csv)
+
+**Test group result** (55,372 transactions, 74 fraud; 95% bootstrap
+intervals in brackets):
+
+| | Main cutoff (top 0.090%) | Cost-based (top 0.196%) | Flag nothing |
+|---|---|---|---|
+| Alerts | 50 | 109 | 0 |
+| Fraud caught / missed | 49 / 25 | 59 / 15 | 0 / 74 |
+| False alarms | 1 | 50 | 0 |
+| Precision | 0.98 (0.93 to 1.00) | 0.54 (0.45 to 0.63) | — |
+| Recall | 0.66 (0.56 to 0.76) | 0.80 (0.71 to 0.88) | 0 |
+| MCC | 0.81 (0.73 to 0.87) | 0.66 (0.58 to 0.73) | — |
+| Total cost | 4,579 (1,743 to 8,316) | 2,641 (973 to 5,433) | 9,208 |
+
+- **Both cutoffs held up on unseen data**, close to what the check blocks
+  predicted (main: 60% caught at 94% precision on the check blocks, 66% at
+  98% on test; cost-based: 79% at 57%, then 80% at 54%).
+- **The trade-off:** the cost-based line catches 10 more frauds at the
+  price of 49 more false alarms. Total cost intervals are wide, because
+  cost depends mostly on the Amounts of a few missed frauds.
+- **The best cost-based line moves with the fraud rate** (from 0.09% to
+  0.48% of transactions across the walk-forward rounds). In a real
+  deployment, the fraud rate and alert queue should be monitored weekly
+  and the line re-tuned regularly.
+  [Confusion matrices](outputs/figures/11_confusion_matrix_test.png),
+  [results](outputs/tables/test_final_cutoffs.csv),
+  [intervals](outputs/tables/test_final_cutoffs_intervals.csv)
+
 ## Planned approach
 
-These are the plans, not results yet:
+This is the plan, not a result yet:
 
-- **A decision threshold** chosen on the walk-forward check blocks (never
-  the test group), including a cost-based one, then applied once to the
-  test scores, with MCC and a confusion matrix.
 - **Explaining the model** with SHAP.
 
 ## Fairness: what this project cannot check

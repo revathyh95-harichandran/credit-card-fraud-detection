@@ -153,6 +153,59 @@ def prepare_with_scaler(data, scaler, columns):
     return data_X
 
 
+def cutoff_at_recall(answers, scores, target_recall):
+    # The score cutoff at which target_recall of the fraud has been caught,
+    # working down the transactions from most to least suspicious. Then
+    # describes what flagging every transaction scoring at or above that
+    # cutoff would do. Used to choose thresholds on walk-forward check data
+    # only, never on the test group.
+    order = np.argsort(-scores, kind="stable")
+    sorted_scores = scores[order]
+    sorted_answers = answers[order]
+    found_so_far = np.cumsum(sorted_answers)
+
+    total_fraud = answers.sum()
+    needed = int(np.ceil(target_recall * total_fraud))
+    position = np.argmax(found_so_far >= needed)
+    cutoff = sorted_scores[position]
+
+    flagged = scores >= cutoff
+    fraud_caught = answers[flagged].sum()
+    return {
+        "cutoff": cutoff,
+        "alerts": flagged.sum(),
+        "fraud_caught": fraud_caught,
+        "total_fraud": total_fraud,
+        "precision": fraud_caught / flagged.sum(),
+        "recall": fraud_caught / total_fraud,
+        "alert_rate": flagged.sum() / len(scores),
+    }
+
+
+def cost_by_alerts(answers, scores, amounts, cost_caught, cost_false_alarm, missed_fee):
+    # Total cost of flagging the top k most suspicious transactions, for
+    # every k from 0 (flag nothing) to all of them. A missed fraud costs its
+    # own Amount + missed_fee; a false alarm costs cost_false_alarm; a caught
+    # fraud costs cost_caught; a genuine transaction let through costs 0.
+    # Returns two lists of the same length: k (0, 1, 2, ...) and total cost.
+    order = np.argsort(-scores, kind="stable")
+    sorted_answers = answers[order]
+    sorted_amounts = amounts[order]
+
+    fraud_value = (sorted_amounts + missed_fee) * sorted_answers
+    caught_so_far = np.cumsum(sorted_answers)
+    false_alarms_so_far = np.cumsum(1 - sorted_answers)
+    fraud_value_caught_so_far = np.cumsum(fraud_value)
+    all_fraud_value = fraud_value.sum()
+
+    cost_when_flagging_some = (cost_caught * caught_so_far
+                               + cost_false_alarm * false_alarms_so_far
+                               + all_fraud_value - fraud_value_caught_so_far)
+    alerts = np.arange(0, len(scores) + 1)
+    total_cost = np.concatenate([[all_fraud_value], cost_when_flagging_some])
+    return alerts, total_cost
+
+
 def bootstrap_metrics(answers, scores_by_name, recall_limit, number_of_resamples, seed):
     # Resamples the pooled check rows with replacement, number_of_resamples
     # times. In each resample every model in scores_by_name (a dictionary of
