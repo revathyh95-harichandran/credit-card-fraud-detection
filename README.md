@@ -7,10 +7,10 @@ transactions, in which fraud is extremely rare.
 
 ## Project status
 
-**Phases 0 (setup), 1 (cleaning), 2 (exploration), 3 (time-based split),
-4 (handling the class imbalance) and 5 (comparing models) are complete.**
-The final model has been chosen (XGBoost) but not yet trained on all the
-development data or scored on the test group. This README is updated at the end of every
+**Phases 0 to 6 are complete:** setup, cleaning, exploration, the
+time-based split, handling the class imbalance, comparing models, and the
+final model's one-time evaluation on the test group. The decision
+threshold (Phase 7) and the model explanation (Phase 8) are still to come. This README is updated at the end of every
 phase with what that phase actually produced.
 
 Phase 1 produced:
@@ -144,13 +144,44 @@ Results: [by round](outputs/tables/models_by_round.csv),
 [paired differences](outputs/tables/models_paired_differences.csv),
 [hour-of-day test](outputs/tables/hour_of_day_paired_differences.csv).
 
+## The final result (Phase 6)
+
+From `notebooks/06_final_evaluation.ipynb`. The final model (XGBoost,
+class weighting, standard settings, 29 features) was trained once on all
+the development data, then scored **once** on the locked test group: the
+latest 20% of the data, 55,372 transactions with 74 fraud cases, never
+used for any decision. Nothing was changed after seeing the result.
+
+| Metric (test group) | Result | 95% confidence interval |
+|---|---|---|
+| **AUCPR over recall 0 to 0.2 (headline)** | **1.00** | 1.00 to 1.00 |
+| Average precision (whole curve) | 0.80 | 0.71 to 0.88 |
+
+- **What the headline means:** working down the model's list of most
+  suspicious transactions, every top alert was real fraud. In fact the
+  first 37 alerts, half of all the fraud, contained no false alarm. The
+  interval is a single point because the metric is at its ceiling; that
+  means no top alert was wrong in this test period, not that the model is
+  certain to be perfect on new data.
+- **Why accuracy isn't used:** a model that calls everything genuine
+  scores 99.87% accuracy on this test group while catching no fraud.
+- **The cost of catching everything:** 80% of the fraud takes 117 alerts
+  (about half of them real fraud); all 74 take 22,970 alerts, because the
+  last few fraud cases look completely ordinary to the model.
+  [Alert depth table](outputs/tables/test_alert_depth.csv),
+  [precision-recall curve](outputs/figures/08_precision_recall_curve_test.png)
+- **Against the walk-forward estimate** (0.97 headline, 0.75 average
+  precision): the test scores are higher, but the confidence intervals
+  overlap, so they are consistent rather than proven different.
+
 ## Planned approach
 
 These are the plans, not results yet:
 
-- **The final model** (XGBoost, class weighting, standard settings)
-  trained once on all the development data, then scored once on the
-  locked test group with AUCPR over the low-recall range.
+- **A decision threshold** chosen on the walk-forward check blocks (never
+  the test group), including a cost-based one, then applied once to the
+  test scores, with MCC and a confusion matrix.
+- **Explaining the model** with SHAP.
 
 ## Fairness: what this project cannot check
 

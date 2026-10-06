@@ -1,0 +1,5 @@
+share of fraud caught,frauds caught,alerts reviewed,precision at that point,score of last alert
+20%,15,15,1.0,0.99999654
+50%,37,37,1.0,0.99996185
+80%,60,117,0.5128205128205128,0.012130028
+100%,74,22970,0.0032215933826730517,1.1698608e-06

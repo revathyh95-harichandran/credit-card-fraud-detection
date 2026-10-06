@@ -127,6 +127,32 @@ def run_walk_forward(development, model_name, recall_limit, columns):
     return round_table, pooled_answers, pooled_scores, trained_models
 
 
+def fit_final_model(development, columns):
+    # The final model: XGBoost (chosen in notebooks/05_models.ipynb) trained
+    # once on ALL the development data (blocks 1 to 5). The Amount scaler and
+    # the class weighting are fitted on that same development data. Returns
+    # the trained model and the fitted scaler; the same scaler must be used
+    # to prepare any later data (such as the test group).
+    scaler = StandardScaler()
+    scaler.fit(development[["Amount"]])
+
+    development_X = development[columns].copy()
+    development_X["Amount"] = scaler.transform(development[["Amount"]])[:, 0]
+    development_y = development["Class"]
+
+    model = make_model("XGBoost", development_y)
+    model.fit(development_X, development_y)
+    return model, scaler
+
+
+def prepare_with_scaler(data, scaler, columns):
+    # Prepares any data (such as the test group) with an already fitted
+    # scaler: the scaler is only applied here, never fitted.
+    data_X = data[columns].copy()
+    data_X["Amount"] = scaler.transform(data[["Amount"]])[:, 0]
+    return data_X
+
+
 def bootstrap_metrics(answers, scores_by_name, recall_limit, number_of_resamples, seed):
     # Resamples the pooled check rows with replacement, number_of_resamples
     # times. In each resample every model in scores_by_name (a dictionary of
