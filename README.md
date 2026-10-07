@@ -30,6 +30,8 @@ once at the very end (55,372 transactions, 74 fraud):
   59 of 74 (80%) with 50 false alarms, at the lowest total cost under stated
   cost assumptions.
 
+![Confusion matrices for both cutoffs on the test group: the main cutoff flags 50 transactions, 49 of them fraud, with 1 false alarm and 25 frauds missed; the cost-based cutoff flags 109, catching 59 frauds with 50 false alarms and 15 missed.](outputs/figures/11_confusion_matrix_test.png)
+
 **How it was kept honest:**
 - **Split by time, never randomly:** every choice was made with
   walk-forward validation on the earliest 80% of the data.
@@ -393,17 +395,23 @@ notebooks.
 The commands are for Windows, as used to build the project. On macOS or
 Linux, use `.venv/bin/python` in place of `.venv\Scripts\python.exe`.
 
-1. **Python:** the project was built and run with Python 3.14.7.
-2. **Set up a private environment and the exact library versions** (all
+1. **Get the code** (needs [git](https://git-scm.com/)):
+   ```
+   git clone https://github.com/revathyh95-harichandran/credit-card-fraud-detection.git
+   cd credit-card-fraud-detection
+   ```
+   or use GitHub's green **Code → Download ZIP** button and unzip it.
+2. **Python:** the project was built and run with Python 3.14.7.
+3. **Set up a private environment and the exact library versions** (all
    pinned in `requirements.txt`), from the project folder:
    ```
    python -m venv .venv
    .venv\Scripts\python.exe -m pip install -r requirements.txt
    ```
-3. **Get the data** (see [Getting the data](#getting-the-data)), so that
+4. **Get the data** (see [Getting the data](#getting-the-data)), so that
    `data/raw/creditcard.csv` exists. Notebook 01 reads it from there and
    never changes it.
-4. **Run the notebooks in order, 01 to 08.** Each one uses files written
+5. **Run the notebooks in order, 01 to 08.** Each one uses files written
    by the ones before it (for example, notebook 03 writes the development
    and test files every later notebook reads). To run one from start to
    finish and save its outputs:
@@ -415,7 +423,7 @@ Linux, use `.venv/bin/python` in place of `.venv\Scripts\python.exe`.
    chart and table is rewritten in `outputs/`. Using `python -m nbconvert`
    with the environment's own Python makes sure the notebooks run with the
    pinned libraries.
-5. **Optionally,** rebuild the saved model with `src\train.py` (above).
+6. **Optionally,** rebuild the saved model with `src\train.py` (above).
 
 **A note on the test group:** re-running notebook 06 scores the test group
 again. The model is reproducible, so the scores come out identical (checked
