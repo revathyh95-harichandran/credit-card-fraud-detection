@@ -7,12 +7,12 @@ transactions, in which fraud is extremely rare.
 
 ## Project status
 
-**Phases 0 to 7 are complete:** setup, cleaning, exploration, the
+**Phases 0 to 8 are complete:** setup, cleaning, exploration, the
 time-based split, handling the class imbalance, comparing models, the
-final model's one-time evaluation on the test group, and choosing the
-decision thresholds. The model explanation (Phase 8) is still to come.
-This README is updated at the end of every phase with what that phase
-actually produced.
+final model's one-time evaluation on the test group, choosing the
+decision thresholds, and explaining the model. The final tidy-up (Phase 9)
+is still to come. This README is updated at the end of every phase with
+what that phase actually produced.
 
 Phase 1 produced:
 - `notebooks/01_data_cleaning.ipynb`: every cleaning check, run on the real
@@ -223,11 +223,40 @@ intervals in brackets):
   [results](outputs/tables/test_final_cutoffs.csv),
   [intervals](outputs/tables/test_final_cutoffs_intervals.csv)
 
-## Planned approach
+## What the model pays attention to (Phase 8)
 
-This is the plan, not a result yet:
+From `notebooks/08_shap.ipynb`, using **SHAP** on the final model over
+the development data (all 226,980 transactions; the test group was not
+used again). For each transaction, SHAP measures how much each feature
+pushed the model's score towards fraud or towards genuine; the pushes add
+up exactly to the model's score (checked, and matched against XGBoost's
+own calculation).
 
-- **Explaining the model** with SHAP.
+- **V14 matters far more than any other feature:** 16% of all pushing,
+  and on fraud transactions three times the next feature. Low V14 values
+  push strongly towards fraud. V14, V4, V12 and V10 together do 40% of
+  the work. [Summary chart](outputs/figures/12_shap_summary.png),
+  [ranking](outputs/figures/13_shap_importance_bar.png),
+  [table](outputs/tables/shap_feature_importance.csv)
+- **What V14 means can't be said:** the V columns are anonymized, so SHAP
+  shows *that* they matter, not what real-world behaviour they stand for.
+  SHAP also explains the model, not the causes of fraud.
+- **Amount** is 6th of 29, a supporting feature rather than a leading one.
+  Middle amounts (10 to 100) push towards genuine; exactly-zero and large
+  amounts push towards fraud, matching where fraud is actually more
+  common. Its largest pushes all go to frauds of exactly 99.99, which may
+  be one repeated attack the model partly remembers.
+  [Chart](outputs/figures/14_shap_amount_dependence.png),
+  [by band](outputs/tables/shap_amount_by_band.csv)
+- **Time** is not one of the model's features, so SHAP says nothing about
+  it directly. The model is still slightly more suspicious of genuine
+  transactions in the night hours where fraud peaks, a pattern that
+  reaches it through the V columns; the effect is small.
+  [Chart](outputs/figures/15_scores_by_hour.png),
+  [by hour](outputs/tables/scores_by_hour.csv)
+
+The notebook separates what the SHAP numbers show from what is only a
+reasonable guess (for example, that zero amounts reflect card testing).
 
 ## Fairness: what this project cannot check
 
