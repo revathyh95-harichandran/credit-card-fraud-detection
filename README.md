@@ -5,23 +5,68 @@ released by the Machine Learning Group of the Université Libre de Bruxelles
 (ULB) together with Worldline: two days of real, anonymized card
 transactions, in which fraud is extremely rare.
 
-## Project status
+## Results at a glance
 
-**Phases 0 to 8 are complete:** setup, cleaning, exploration, the
-time-based split, handling the class imbalance, comparing models, the
-final model's one-time evaluation on the test group, choosing the
-decision thresholds, and explaining the model. The final tidy-up (Phase 9)
-is still to come. This README is updated at the end of every phase with
-what that phase actually produced.
+**The problem:** fraud is about 1 in 600 transactions, and a bank's fraud
+team can only review a small number of alerts. A useful model has to put
+real fraud at the very top of its list of suspicious transactions, without
+burying the team in false alarms.
 
-Phase 1 produced:
-- `notebooks/01_data_cleaning.ipynb`: every cleaning check, run on the real
-  data, with its real output.
-- `docs/data_dictionary.md`: every column explained, with checked facts.
-- A cleaned dataset (kept locally, not in this repository): 283,726
-  transactions after removing 1,081 exact duplicate copies. 473 are fraud,
-  **0.1667%**, about 1 in every 599. No missing values and no contradictory
-  labels were found.
+**The model:** XGBoost with class weighting (each fraud case counted about
+568 times while learning, so the rare class isn't ignored), standard
+settings, using 29 features: the 28 anonymized columns `V1` to `V28` plus
+the scaled transaction `Amount`.
+
+**The honest result**, on the latest 20% of the data, held back and scored
+once at the very end (55,372 transactions, 74 fraud):
+
+- **The top of the list was all real fraud.** The headline measure, AUCPR
+  over the low-recall range (precision among the model's most confident
+  alerts), was 1.00: the first 37 alerts, half of all the fraud, contained
+  no false alarm.
+- **With the main cutoff (flag the top 0.090%):** 50 alerts, 49 of them real
+  fraud, catching 49 of the 74 frauds (66%) with **1 false alarm**.
+- **With a cost-based cutoff (flag the top 0.196%):** 109 alerts, catching
+  59 of 74 (80%) with 50 false alarms, at the lowest total cost under stated
+  cost assumptions.
+
+**How it was kept honest:**
+- **Split by time, never randomly:** every choice was made with
+  walk-forward validation on the earliest 80% of the data.
+- **Test group used once:** the latest 20% was touched once, to report the
+  result.
+- **No winner from a single number:** every comparison uses bootstrap
+  confidence intervals, so a winner is only declared when the difference
+  is more than noise.
+- **Limits stated:** see [Limitations](#limitations) and
+  [Fairness](#fairness-what-this-project-cannot-check).
+
+The **[model card](docs/model_card.md)** summarises the model on one page:
+what it is for and not for, how it was tested, its results, limitations,
+and the dataset's license and privacy.
+
+## How the project got there
+
+Each section below is one phase of the project, with its notebook, real
+results and saved charts.
+
+## Cleaning (Phase 1)
+
+From `notebooks/01_data_cleaning.ipynb`; every check was run on the real
+data. Every column is described in
+[docs/data_dictionary.md](docs/data_dictionary.md).
+
+- **A stable `row_id` was added first,** from the original row order, so
+  any transaction can always be traced back to the raw file.
+- **No missing values;** no negative amounts. The 1,825 transactions with
+  an Amount of exactly zero are kept: they are real records, and 27 of them
+  are fraud.
+- **1,081 extra copies of exact duplicate rows removed** (one copy of each
+  kept). They were checked by class first: 19 of the removed copies were
+  fraud, but every fraud transaction still keeps one copy, and no
+  duplicate pair disagreed on whether it was fraud.
+- **The cleaned data:** 283,726 transactions, of which 473 are fraud,
+  **0.1667%**, about 1 in every 599 (recalculated after cleaning).
 
 ## What the data looks like (Phase 2)
 
@@ -36,8 +81,9 @@ All from `notebooks/02_exploration.ipynb`, on the cleaned data.
   [boxplot](outputs/figures/03_amount_boxplot.png)
 - **Transactions follow a daily cycle,** with the quietest hours exactly 24
   hours apart. **Fraud does not:** its share rises to about 1.3% to 1.6% of
-  transactions in the quiet hours, against 0.17% overall. (The data's clock
-  time is unknown, so these can't be named as night-time for certain.)
+  transactions in the quiet hours, against 0.17% overall. The data's clock
+  time is unknown, so the quiet hours are only *probably* night-time; "night"
+  below is used in that sense.
   [Chart](outputs/figures/04_time_distribution.png)
 - **Fraud looks different in Amount, but not simply "bigger":** a lower
   median than genuine (9.82 vs 22.00) and a higher mean (123.87 vs 88.41),
@@ -68,7 +114,9 @@ would let a model learn from the future.
 - **Clean boundaries:** transactions from the same second always stay
   together, and the first 10 minutes after each boundary are not scored,
   so a burst of fraud can't be learned on one side and scored on the
-  other.
+  other. For the test group this leaves **55,372 scored transactions** of
+  its 56,746 (all 74 fraud cases are among them); that is the number used
+  in the results below.
 - **The fraud rate changes over time:** from 0.10% to 0.31% across blocks,
   highest in the two blocks containing night-time stretches. The first
   block's rate (0.31%) is higher than every other part's, and the second
@@ -138,7 +186,9 @@ the same code.
   Logistic Regression failed to finish learning in three of four rounds,
   so it is kept.
 - **An hour-of-day feature** (fraud's share rises at night) was tested and
-  **left out**: it didn't measurably improve XGBoost.
+  **left out**: it didn't measurably improve XGBoost. `Time` itself is not
+  a feature either, so the model uses 29 features: `V1` to `V28` and
+  `Amount`.
 
 Results: [by round](outputs/tables/models_by_round.csv),
 [pooled](outputs/tables/models_pooled.csv),
@@ -150,8 +200,8 @@ Results: [by round](outputs/tables/models_by_round.csv),
 From `notebooks/06_final_evaluation.ipynb`. The final model (XGBoost,
 class weighting, standard settings, 29 features) was trained once on all
 the development data, then scored **once** on the locked test group: the
-latest 20% of the data, 55,372 transactions with 74 fraud cases, never
-used for any decision. Nothing was changed after seeing the result.
+latest 20% of the data, 55,372 scored transactions with 74 fraud cases,
+never used for any decision. Nothing was changed after seeing the result.
 
 | Metric (test group) | Result | 95% confidence interval |
 |---|---|---|
@@ -258,6 +308,34 @@ own calculation).
 The notebook separates what the SHAP numbers show from what is only a
 reasonable guess (for example, that zero amounts reflect card testing).
 
+## Limitations
+
+- **Two days of data.** Every result comes from about 48 hours of
+  transactions, from one source. Whether the patterns hold over weeks or
+  months, or for another bank, is unknown.
+- **Few fraud cases to measure with.** The final result rests on 74 test
+  fraud cases, and every choice on 250 check-block fraud cases. That is
+  why every number comes with a confidence interval, and some of those
+  intervals are wide.
+- **Anonymized features.** `V1` to `V28` can't be interpreted, so the
+  model's reasoning can be measured (Phase 8) but not explained in
+  real-world terms.
+- **No search for the best settings,** on purpose: with so few fraud cases
+  to judge on, tuning would partly fit those particular cases. The results
+  show standard-setting performance, not the best these models could do.
+- **The cost figures are assumptions,** not real bank data, so the
+  cost-based cutoff is only as good as those assumptions.
+- **The fraud score ranks suspicion; it isn't the real chance of fraud.**
+  Class weighting pushes scores upwards; how far they differ from real
+  chances was not measured.
+- **Possible memorising of one attack:** 27 development frauds share an
+  Amount of exactly 99.99, and the model gives that amount its largest
+  Amount pushes; a different attacker would not trigger them.
+- **Cutoffs are shares of a batch.** Both cutoffs flag the top share of a
+  set of transactions, so they suit scoring a day's worth at once, not
+  single transactions one by one, and the best cost-based share moves with
+  the fraud rate.
+
 ## Fairness: what this project cannot check
 
 A fair fraud model should not flag some groups of people (for example by
@@ -279,20 +357,98 @@ using data that includes the relevant characteristics, handled under
 appropriate privacy safeguards. That audit is outside what this dataset
 makes possible.
 
+## Using the trained model
+
+The final model is saved in this repository as
+`outputs/models/fraud_model.joblib` (about 249 KB): the Amount scaling
+learned from the development data and the XGBoost model together, as one
+scikit-learn pipeline, so new data is always prepared exactly as in
+training. No retraining is needed to use it. (Only load model files you
+trust: loading a joblib file can run code stored inside it.)
+
+**To score transactions** (after the setup steps below):
+
+```
+.venv\Scripts\python.exe src\predict.py transactions.csv predictions.csv
+```
+
+- **Input:** a CSV with columns `V1` to `V28` and `Amount`, in any order.
+  Other columns are ignored, except `row_id`, which is copied to the
+  output.
+- **Output:** one row per transaction: `fraud_score` (0 to 1, higher is
+  more suspicious), `rank` (1 = most suspicious in the file) and `flagged`
+  (the top 0.090% of the file, the main cutoff). Add
+  `--cutoff cost-based` to flag the top 0.196% instead.
+- **Batches only:** because flags are a share of the file, use it on a
+  batch of transactions such as a day's worth; it warns when a file is too
+  small for the rule to mean anything.
+
+**To rebuild the model** from the development data:
+`.venv\Scripts\python.exe src\train.py`. Before saving, it checks that the
+rebuilt model gives exactly the same scores as the model evaluated in the
+notebooks.
+
+## How to rerun this project
+
+The commands are for Windows, as used to build the project. On macOS or
+Linux, use `.venv/bin/python` in place of `.venv\Scripts\python.exe`.
+
+1. **Python:** the project was built and run with Python 3.14.7.
+2. **Set up a private environment and the exact library versions** (all
+   pinned in `requirements.txt`), from the project folder:
+   ```
+   python -m venv .venv
+   .venv\Scripts\python.exe -m pip install -r requirements.txt
+   ```
+3. **Get the data** (see [Getting the data](#getting-the-data)), so that
+   `data/raw/creditcard.csv` exists. Notebook 01 reads it from there and
+   never changes it.
+4. **Run the notebooks in order, 01 to 08.** Each one uses files written
+   by the ones before it (for example, notebook 03 writes the development
+   and test files every later notebook reads). To run one from start to
+   finish and save its outputs:
+   ```
+   .venv\Scripts\python.exe -m nbconvert --to notebook --execute --inplace notebooks\01_data_cleaning.ipynb
+   ```
+   then the same for `02_exploration`, `03_time_split`, `04_imbalance`,
+   `05_models`, `06_final_evaluation`, `07_threshold` and `08_shap`. Every
+   chart and table is rewritten in `outputs/`. Using `python -m nbconvert`
+   with the environment's own Python makes sure the notebooks run with the
+   pinned libraries.
+5. **Optionally,** rebuild the saved model with `src\train.py` (above).
+
+**A note on the test group:** re-running notebook 06 scores the test group
+again. The model is reproducible, so the scores come out identical (checked
+during the project by comparing the saved scores file before and after a
+re-run): a re-run repeats the same measurement and changes no decision.
+
 ## Project structure
 
 ```
-data/
-  raw/          original download, never modified (not in git)
-  staging/      in-between cleaning output (not in git)
-  processed/    final cleaned data used for modelling (not in git)
-notebooks/      Jupyter notebooks for exploration and explanation
-src/            Python code for the repeatable steps (walk_forward.py)
+data/                   (not in git; see "Getting the data")
+  raw/                  original download, never modified
+  staging/              in-between files: the data with row_id added, removed
+                        duplicates, the saved test scores, prediction demos
+  processed/            cleaned data, and the development and test files
+notebooks/
+  01_data_cleaning      cleaning checks and the cleaned file
+  02_exploration        first look at the data, charts 01-06
+  03_time_split         time-based split and walk-forward blocks, chart 07
+  04_imbalance          SMOTE, Borderline-SMOTE, ADASYN, class weighting
+  05_models             Logistic Regression, Random Forest, XGBoost
+  06_final_evaluation   the final model, scored once on the test group
+  07_threshold          choosing the cutoffs; confusion matrix
+  08_shap               explaining the model with SHAP
+src/
+  walk_forward.py       shared steps used by notebooks 05-08 and train.py
+  train.py              trains and saves the final model
+  predict.py            scores new transactions with the saved model
 outputs/
-  figures/      every chart, saved as an image file
-  tables/       summary tables, saved as CSV files
-  models/       the final trained model
-docs/           project documentation, such as the data dictionary
+  figures/              every chart, saved as an image file
+  tables/               summary tables, saved as CSV files
+  models/               the final trained model (fraud_model.joblib)
+docs/                   the data dictionary and the model card
+requirements.txt        exact library versions
 ```
 
 ## Getting the data
@@ -300,7 +456,10 @@ docs/           project documentation, such as the data dictionary
 The dataset is not included in this repository. Download it from Kaggle:
 [Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud),
 and place the downloaded `archive.zip` in `data/raw/`. Unzip it there to get
-`creditcard.csv`.
+`creditcard.csv`. Its creators describe it as transactions made by
+European cardholders over two days in September 2013, and its Kaggle page
+lists it under the Open Data Commons Database Contents License (DbCL)
+v1.0.
 
 ## License
 

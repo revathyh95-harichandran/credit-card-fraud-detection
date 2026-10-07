@@ -23,6 +23,10 @@ only after that check has actually been run, and is labelled as such.
 | `data/processed/development.csv` | The earliest 80% (226,980 rows, 399 fraud, hours 0 to 40.34), plus the `block` and `in_gap` columns. Every choice in the project is made on this file, with walk-forward validation. |
 | `data/processed/test.csv` | The latest 20% (56,746 rows, 74 fraud, hours 40.34 to 48.00), plus the `in_gap` column. Opened once only, for the final result. |
 | `data/staging/superseded_60_20_20/` | `train.csv` and `validation.csv` from a first 60/20/20 split, replaced by walk-forward validation. Kept only as a record; not used. |
+| `data/staging/final_test_scores.csv` | The final model's scores for the 55,372 scored test transactions (`row_id`, `Class`, `score`), saved once in notebook 06 and reused, never recalculated, in notebook 07. |
+| `outputs/models/fraud_model.joblib` | The final model, saved by `src/train.py`: the preparation step (Amount scaled with the mean and spread learned from the development data) and the XGBoost model together, as one scikit-learn pipeline. |
+| `data/staging/predict_demo_input.csv` | A demonstration input for `src/predict.py`: the development data with `Class`, `block` and `in_gap` removed, so the script can't see the answers. |
+| `data/staging/predict_demo_output.csv` | What `src/predict.py` wrote for that demonstration input (columns described below). |
 
 ## Columns
 
@@ -38,6 +42,18 @@ numbers, `float64` means decimal numbers. No column has any missing values.
 | `block` | Added by us (split notebook 03), development file only | int64 | Which of the 5 time-ordered walk-forward blocks the transaction belongs to, 1 (earliest) to 5 (latest). Each block has about 45,400 rows; transactions from the same second are always in the same block. |
 | `in_gap` | Added by us (split notebook 03), development and test files | bool | `True` for transactions in the first 10 minutes after a boundary (the starts of blocks 2 to 5, and of the test group). These rows are not scored when checking or testing, so a fraud burst can't be learned on one side of a boundary and scored on the other. They are still used for learning. |
 | `Class` | Original | int64 | The label the model tries to predict: `1` = confirmed fraud, `0` = genuine transaction. These are the only two values that appear. In the cleaned file: 283,253 genuine and 473 fraud (0.1667% fraud, about 1 in 599), counted in cleaning step 9. |
+
+## Prediction output columns
+
+Created by `src/predict.py`, one row per input transaction, in the input's
+order.
+
+| Column | Type | Description |
+|---|---|---|
+| `row_id` | int64 | Copied from the input, only if the input has a `row_id` column. |
+| `fraud_score` | float64 | The model's score, from 0 to 1; higher means more suspicious. Read it as a ranking of suspicion, not as the real chance that a transaction is fraud: class weighting counted each fraud about 568 times during training, which pushes scores upwards. (How far the scores differ from real chances was not measured in this project.) |
+| `rank` | int64 | 1 = the most suspicious transaction in this input file. Tied scores keep the file's order. |
+| `flagged` | bool | `True` for the top share of this file to send to the fraud team: the top 0.090% by default (the main cutoff, notebook 07), or the top 0.196% with `--cutoff cost-based`. Because it is a share of the file, it is only meaningful for a batch of transactions, such as a day's worth. |
 
 ## Why the V columns are anonymized
 
