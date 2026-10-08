@@ -457,6 +457,7 @@ outputs/
   models/               the final trained model (fraud_model.joblib)
 docs/                   the data dictionary and the model card
 requirements.txt        exact library versions
+AI_USAGE.md             how an AI assistant was used in this project
 ```
 
 ## Getting the data
@@ -474,3 +475,14 @@ v1.0.
 The code and documentation in this project are released under the MIT
 License, see [LICENSE](LICENSE). The dataset is not covered by this license;
 it belongs to its creators and has its own terms.
+
+## AI Usage Declaration
+
+I used **Claude Code** (an AI assistant made by Anthropic) as an assistant in this
+project. The research question, the choice of the ULB/Worldline credit card dataset,
+the analysis plan and all final decisions are my own. I wrote every prompt, reviewed
+every output, and checked the results before accepting them. The tool mainly helped
+with writing code, drafting documentation and charts, and handling routine tasks. That
+gave me more time to brainstorm, ask analytical questions and explore the data in more
+depth. Where the tool suggested an approach, I evaluated it and decided whether to use
+it. A full breakdown is in [AI_USAGE.md](AI_USAGE.md).
